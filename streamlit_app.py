@@ -371,15 +371,19 @@ def parse_and_process_log_file(filename):
                 match_bv2 = re.search(r'BVCh2:\s*([-\d\.]+)', stripped)
                 
                 if match_time and match_cur1 and match_bv1 and match_cur2 and match_bv2:
-                    all_lines.append({
-                        'line_num': idx + 1,
-                        'line_str': stripped,
-                        't': int(match_time.group(1)),
-                        'cur1': float(match_cur1.group(1)),
-                        'bv1': float(match_bv1.group(1)),
-                        'cur2': float(match_cur2.group(1)),
-                        'bv2': float(match_bv2.group(1))
-                    })
+                    try:
+                        all_lines.append({
+                            'line_num': idx + 1,
+                            'line_str': stripped,
+                            't': int(match_time.group(1)),
+                            'cur1': float(match_cur1.group(1)),
+                            'bv1': float(match_bv1.group(1)),
+                            'cur2': float(match_cur2.group(1)),
+                            'bv2': float(match_bv2.group(1))
+                        })
+                    except ValueError:
+                        # Skip corrupted lines
+                        continue
                     
     # Segment into cycles
     cycles = []
@@ -418,6 +422,7 @@ def parse_and_process_log_file(filename):
 
 files = {
     '1880uF': '1880uF_5ma_10ma_15ma_20ma_25ma_data.txt',
+    '940uF': '940uF_5ma_10ma_15ma_20ma_25ma_data.txt',
     '220uF': '220uF_5ma_10ma_15ma_20ma_25ma_data.txt',
     '1F': '1F_5ma_10ma_15ma_20ma_25ma_data.txt'
 }
@@ -430,9 +435,19 @@ sectors = {
     '25mA': (23.0, 27.0)
 }
 
+def get_file_status_key():
+    key = []
+    for cap_name, filename in files.items():
+        if os.path.exists(filename):
+            stat = os.stat(filename)
+            key.append((cap_name, True, stat.st_mtime, stat.st_size))
+        else:
+            key.append((cap_name, False, 0.0, 0))
+    return tuple(key)
+
 # Preprocess all cycles on load
 @st.cache_data
-def get_all_sector_data():
+def get_all_sector_data(status_key):
     db = {}
     for cap_name, filename in files.items():
         db[cap_name] = {}
@@ -483,7 +498,7 @@ def get_all_sector_data():
             
     return db
 
-db = get_all_sector_data()
+db = get_all_sector_data(get_file_status_key())
 
 
 # --- Streamlit Layout & Controls ---
@@ -519,9 +534,10 @@ col1, col2, col3 = st.columns(3)
 with col1:
     cap_choice = st.selectbox(
         "Select Capacitor Buffer",
-        options=["1880uF", "220uF", "1F"],
+        options=["1880uF", "940uF", "220uF", "1F"],
         format_func=lambda x: (
             "1880uF (Electrolytic)" if x == "1880uF" else
+            "940uF (Electrolytic)" if x == "940uF" else
             "220uF (Electrolytic)" if x == "220uF" else
             "1F (Supercapacitor)"
         )
