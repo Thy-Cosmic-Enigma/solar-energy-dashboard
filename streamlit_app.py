@@ -418,6 +418,7 @@ def parse_and_process_log_file(filename):
 
 files = {
     '1880uF': '1880uF_5ma_10ma_15ma_20ma_25ma_data.txt',
+    '220uF': '220uF_5ma_10ma_15ma_20ma_25ma_data.txt',
     '1F': '1F_5ma_10ma_15ma_20ma_25ma_data.txt'
 }
 
@@ -518,8 +519,12 @@ col1, col2, col3 = st.columns(3)
 with col1:
     cap_choice = st.selectbox(
         "Select Capacitor Buffer",
-        options=["1880uF", "1F"],
-        format_func=lambda x: "1880uF (Electrolytic)" if x == "1880uF" else "1F (Supercapacitor)"
+        options=["1880uF", "220uF", "1F"],
+        format_func=lambda x: (
+            "1880uF (Electrolytic)" if x == "1880uF" else
+            "220uF (Electrolytic)" if x == "220uF" else
+            "1F (Supercapacitor)"
+        )
     )
 
 with col2:
